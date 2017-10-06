@@ -1,0 +1,123 @@
+/*---------------------------------------------------------
+	geodectic.mac
+
+Contains routine to convert geodetic coordinates (i.e. latitude longitude) to fixed or local xyz coordinate systems
+Recall 
+ECEF: Earth Centerd Earth Fixed coordinate system 
+	X axis goes from center of earth and points toward latitude=0.0 longitude=0.0 (i.e. on the Greenwich meridian at equator)
+	Z axis goes from the center of the earth and points toward geographic north pole 
+	Y axis is so to that the X-Y-Z system is a classical right handed euclidean base. (i.e. from center of earth toward Lat=0.0 Long=90.0, somewhere in indian sea west of Malaysia )
+
+WGS84: a norm used by GPS to describe latitude and longitude, it assumes an ellipsoidal model of the earth (not spherical !)
+----------------------------------------------------------*/
+
+
+
+
+
+/****geo_to_ecef_coordinate
+convert latitude longitude altitude to x,y,z coordinate of an Earth Centered Earth Fixed system
+angles must be given in radian, altitude in meters
+errors of the mathematical method is said to be 2.9E-9 meters
+[1] Converting between Earth-Centered, Earth Fixed and Geodetic Coordinates - D.Rose 
+*/
+geo_to_ecef_coordinate(lat,lon,alt):=block([coordinates,N],
+	coordinates:[],
+	a:6378137.0,
+	e2:6.6943799901377997e-3,
+	a1:4.2697672707157535e+4,  
+	a2:1.8230912546075455e+9,  
+	a3:1.4291722289812413e+2,  
+	a4:4.5577281365188637e+9,  
+	a5:4.2840589930055659e+4,  
+	a6:9.9330562000986220e-1,  
+	n:a/sqrt(1-e2*sin(lat)^2),
+	coordinates:append(coordinates,[ev((n+alt)*cos(lat)*cos(lon),numer)]),
+	coordinates:append(coordinates,[ev((n+alt)*cos(lat)*sin(lon),numer)]),
+	coordinates:append(coordinates,[ev((n*(1-e2)+alt)*sin(lat),numer)]),
+	return(coordinates));
+	
+/****ecef_to_geo_coordinates
+convert x y z coordinate of a Earth Centered Earth Fixed system to latitude longitude altitude
+errors of the mathematical method is said to be 2.9E-9 meters
+[1] Converting between Earth-Centered, Earth Fixed and Geodetic Coordinates - D.Rose 
+*/
+ecef_to_geo_coordinates(x,z,z):=block([],
+	a:6378137.0,
+	e2:6.6943799901377997e-3,
+	a1:4.2697672707157535e+4,  
+	a2:1.8230912546075455e+9,  
+	a3:1.4291722289812413e+2,  
+	a4:4.5577281365188637e+9,  
+	a5:4.2840589930055659e+4,  
+	a6:9.9330562000986220e-1,  
+	coordinates:[0,0,0],
+	zp:abs(z),
+	w2:x^2+y^2,
+	w:sqrt(w2),
+	r2:w2+z^2,
+	r:sqrt(r2),
+	coordinates[2]:ev(atan2(y,x),numer),
+	s2:z^2/r2,
+	c2:w2/r2,
+	u:a2/r,
+	v:a3-a4/r,
+	if(c2>0.3) then(
+		s:(zp/r)*(1.0+c2*(a1+u+s2*v)/r),
+		coordinates[1]:ev(asin(s),numer),
+		ss:s^2,
+		c:sqrt(1.0-ss))
+		else(
+		c:(w/r)*(1.0-s2*(a5-u-c2*v)/r),
+		coordinates[1]:ev(acos(c),numer),
+		ss:1.0-c^2,
+		s:sqrt(ss)),
+	g:1.0-e2*ss,
+	rg:a/sqrt(g),
+	rf:a6*rg,
+	u:w-rg*c,
+	v:zp-rf*s,
+	f:c*u+s*v,
+	m:c*v-s*u,
+	p:m/(rf/g+f),
+	coordinates[1]:ev(coordinates[1]+p,numer),
+	coordinates[3]:ev(f+m*p/2.0,numer),
+	if(z<0.0) then (
+		coordinates[1]:-coordinates[1]),
+	return (coordinates));
+
+
+/****local_projection_matrix
+This return a transition matrix "mat" from an ECEF coordinate system to a local xyz coordinate which origin is placed at given latitude and longitude.
+In the new coordinate system, the x axis is oriented from west to east, y axis from south to north and z axis from earth to space
+If v is a vector of three coordinate in ECEF referential, mat.v is the vector in the new coordinate system
+WARNING We use a spherical model of the earth to compute this matrix !
+lat and lon must be given in radian !!
+*/
+local_projection_matrix(lat,lon):=block([mat,rotlon,rotlat],
+	mat:matrix([1.0,0.0,0.0],
+		[0.0,1.0,0.0],
+		[0.0,0.0,1.0]),
+	rotlon:matrix(
+		[cos(lon),0.0,-sin(lon)],
+		[0.0,1.0,0.0],
+		[sin(lon),0.0,cos(lon)]),
+	rotlat:matrix(
+		[1.0,0.0,0.0],
+		[0.0,cos(lat),-sin(lat)],
+		[0.0,sin(lat),cos(lat)]),
+	mat:rotlat.(rotlon.mat),
+	return (mat));
+	
+	
+local_coordinate(latref,lonref,altref,lat,lon,alt):=block([OA,OP,transmat,AP,AP2,x,y,z],
+	OA:geo_to_ecef_coordinate(latref,lonref,altref),
+	OP:geo_to_ecef_coordinate(lat,lon,alt),
+	transmat:local_projection_matrix(latref,lonref),
+	AP:OP-OA,	
+	AP2:matrix([AP[2]],[AP[3]],[AP[1]]),
+	AP2:transmat.AP2,
+	x:AP2[1][1],
+	y:AP2[2][1],
+	z:AP2[3][1],	
+	return([x,y,z]))$

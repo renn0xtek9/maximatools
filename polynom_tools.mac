@@ -1,0 +1,84 @@
+/****polynom_spline 
+This create a third order cubic spline with fixed boundary conditions:
+xa: abscissa of the first BC
+xb: abscissa of the second BC
+ya: value of polynome at first BC 
+yb: value of polynome at second BC
+dydxa: value of derivative at x=xa 
+dydxb: value of derivative at x=xb
+
+*/
+polynom_spline(xa,xb,ya,yb,dydxa,dydxb):=block([M,C,A,Basex],
+	M:matrix([1,xa,xa^2,xa^3],
+		[1,xb,xb^2,xb^3],
+		[0,1,2*xa,3*xa^2],
+		[0,1,2*xb,3*xb^2]),
+	C:matrix([ya],[yb],[dydxa],[dydxb]),
+	A:(M^^-1).C,
+	BaseX:matrix([1],[x],[x^2],[x^3]),
+	return(BaseX.A));
+	
+/****polynom_lms 
+This create order less mean square polynom without boundary conditions
+X is a list of measurements abscissa type [[x0],[x1],[x2]] If you have X have as a matrix type in form of a column vector, you should call the function with  args(col(X,1)) as argument
+Y is a list of measurements ordinates type [[y0],[y1],[y2]] If you have Y have as a matrix type in form of a column vector, you should call the function with  args(col(Y,1)) as argument
+order is the degree of the polynome (e.g. 3 for a third order polynoms (of 4 coefficients))
+xmin is the lower boundary of the data range we want the polynom to fit on (in case we do not want to use all the data range)
+xmax is the upper boundary of the data range we want the polynom to fit on
+*/
+polynom_lms(xmin,xmax,X,Y,order):=block([i,xshift,m,xvec,xi,yi,V,VM,A,Basex],
+/* 	printf(true,"Polynom LMS Between ~f and ~f . X has ~d elements preferred order ~d ~%",xmin,xmax,length(X),order),		/*DEBUG*/	 */
+	xshift:(xmin+(xmax-xmin)/2.0),
+	xvec:[],
+	yvec:matrix(),
+	for i: 1 thru length(X) do (
+		xi:X[i][1],
+		yi:Y[i][1],
+/* 		printf(true,"xi: ~f yi: ~f ~%",xi,yi),		/*DEBUG*/  */
+		if ((xi>=xmin) and (xi<=xmax)) then (
+			xvec:append(xvec,[xi-xshift]),
+			yvec:addrow(yvec,[yi]))),
+	m:length(yvec),	
+	if (m<order+1) then (
+		printf(true,"WARNING polynom_lms~%Not enough data to make LMS polynom~%Degree should be ~f while there are only ~f measurements in the range ~%Adjusting order to: ~f~%",order,m,m-1),
+		order:m-1),
+	VM:vandermonde_matrix(xvec),
+	V:matrix(),
+/* 	cut extra columns of the Vandermonde matrix */
+	for i:1 thru order+1 do (
+		V:addcol(V,col(VM,i))),
+	VM:V,
+	V:transpose(VM).V,
+	A:(V^^-1).(transpose(VM).yvec),
+	Basex:matrix(),
+	for i: 1 thru order+1 do(
+		if(((i-1)=0)and((x-xshift)=0.0))then (
+			Basex:addrow(Basex,[0]))
+			else(
+		Basex:addrow(Basex,[(x-xshift)^(i-1)]))),
+	Pol(x):=A.Basex,
+	return (Pol(x)))$
+
+/****polynom_error
+Returns the error made by a given polynom on the dataset
+X is a list of measurements abscissa type [[x0],[x1],[x2]] If you have X have as a matrix type in form of a column vector, you should call the function with  args(col(X,1)) as argument
+Y is a list of measurements ordinates type [[y0],[y1],[y2]] If you have Y have as a matrix type in form of a column vector, you should call the function with  args(col(Y,1)) as argument
+xmin is the beginning of the xrange (in case we don't want to use all x)
+xmax is the end of the xrange
+pol is a polynome of a single variable, of arbitrary order.
+The function returns the sum of absolute value of all errors
+*/
+polynom_error(xmin,xmax,X,Y,pol):=block([xi,yi,xvec,yvec,eps],
+/* 	printf(true,"compute error between ~f and ~f . X has ~d elements. Pol is ~s ~%",xmin,xmax,length(X),pol(x)),		/*DEBUG*/ */
+	eps:0.0,
+	xvec:matrix(),
+	yvec:matrix(),
+	for i: 1 thru length(X) do (
+		xi:X[i][1],
+		yi:Y[i][1],
+		if ((xi>=xmin) and (xi<=xmax)) then (
+			xvec:addrow(xvec,[xi]),
+			yvec:addrow(yvec,[yi]))),
+	for i:1 thru length(xvec) do (
+		eps:eps+abs(yvec[i][1]-pol(xvec[i][1]))),
+	return (eps));

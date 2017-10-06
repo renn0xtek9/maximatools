@@ -1,0 +1,51 @@
+colorBold:"\\e[1m"$
+colorUnderlined:"\\e[4m"$
+colorBlink:"\\e[5m"$
+colorInverted:"\\e[7m"$
+colorHidden:"\\e[8m"$
+
+colorBlack:"\\e[30m"$
+colorRed:"\\e[31m"$
+colorGreen:"\\e[32m"$
+colorYellow:"\\e[33m"$
+colorBlue:"\\e[34m"$
+colorPurple:"\\e[35m"$
+colorCyan:"\\e[36m"$
+colorLightGray:"\\e[37m"$
+colorDarkGray:"\\e[30m"$
+colorLightRed:"\\e[31m"$
+colorLightGreen:"\\e[32m"$
+colorLightYellow:"\\e[93m"$
+colorLightBlue:"\\e[34m"$
+colorLightPurple:"\\e[35m"$
+colorLightCyan:"\\e[36m"$
+colorWhite:"\\e[97m"$
+
+colorBckgrDefault:"\\e[49m"$
+colorBckgrBlack:"\\e[40m"$
+colorBckgrRed:"\\e[41m"$
+colorBckgrGreen:"\\e[42m"$
+colorBckgrYellow:"\\e[43m"$
+colorBckgrBlue:"\\e[44m"$
+colorBckgrPurple:"\\e[45m"$
+colorBckgrCyan:"\\e[46m"$
+colorBckgrLightGray:"\\e[47m"$
+colorBckgrDarkGray:"\\e[100m"$
+colorBckgrLightRed:"\\e[101m"$
+colorBckgrLightGreen:"\\e[102m"$
+colorBckgrLightYellow:"\\e[103m"$
+colorBckgrLightBlue:"\\e[104m"$
+colorBckgrLightPurple:"\\e[105m"$
+colorBckgrLightCyan:"\\e[106m"$
+colorBckgrWhite:"\\e[107m"$
+
+
+
+/****coloprintf
+printf in color via system call. 
+Example of use
+a:colorprintf(printf(false,"~sme~srde~%",colorRED,colorBLUE))$
+*/
+colorprintf(str):=block([cmd],
+	cmd:printf(false,"/usr/bin/printf \"~a\\e[0m\"",str),
+	system(cmd))$

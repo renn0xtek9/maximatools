@@ -1,0 +1,22 @@
+/*******************************************************************************************
+Subroutine to contract exponent of an expression
+2016  Maxime Haselbauer
+*******************************************************************************************/
+/*Just define tmp to be the terme for which you want exponents to be contracted.
+e.g if tmp:a^n a^m b^m 
+then 
+tmp becomes (a)^(n+m) b^m
+
+However the script as is DOES NOT manage to make
+a^n b^n c^m 
+to becomes
+(ab)^n c^m
+*/
+load(facexp);
+
+tmp:log(tmp);
+tmp:ev(tmp, logexpand=super);
+tmp:factor(tmp);
+tmp:exp(tmp);
+tmp:logcontract(tmp);
+tmp:radcan(tmp);

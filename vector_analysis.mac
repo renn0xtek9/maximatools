@@ -1,0 +1,40 @@
+/* gradient */
+nabla(f,[v]):=block([n],
+	n:length(v),
+	makelist(diff(f,v[i]),i,1,n))$
+/* laplacian */
+nabla2(f,[v]):=block([n],
+	n:length(v),
+	sum(diff(f,v[i],2),i,1,n))$
+/* divergence */
+div(f,[v]):=block([n],
+	n:length(v),
+	if not listp(f) or n # length(f)
+		then error("Illegal input"),
+	sum(diff(f[i],v[i]),i,1,n))$
+/* curl */
+rot(f,[v]):=block([n],
+	n:length(v),
+	if not listp(f) or n # 3 or n # length(f)
+		then error("Wrong input"),
+	[diff(f[3],v[2])-diff(f[2],v[3]),
+	diff(f[1],v[3])-diff(f[3],v[1]),
+	diff(f[2],v[1])-diff(f[1],v[2])] )$
+/* Some examples follow 
+nabla(x*y^2+2*y*z*t+sin(x*t),x,y,z,t);
+%,x=2,y=3,z=1,t=0;
+nabla(f(u,v,w),u,v,w);
+nabla2(f(u,v,w),u,v,w);
+div([3*x*y,x^2*z,-y^2*exp(2*z)],x,y,z);
+%,x=1,x=2,z=0;
+%,x=1,y=2,z=0;
+depends([Fx,Fy,Fz],[x,y,z]);
+rot([Fx,Fy,Fz],x,y,z);
+*/
+
+normalize_vector(vec):=block([tot,vectmp],
+	vectmp:copymatrix(vec),
+	tot:vectmp.vectmp,
+	for i:1 thru length(vectmp) do ( 
+		vectmp[i][1]:vectmp[i][1]/(float(sqrt(tot)))),
+	return(vectmp))$
